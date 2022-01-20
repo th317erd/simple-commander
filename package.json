@@ -1,6 +1,6 @@
 {
   "name": "simple-yargs",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "yargs made simple",
   "main": "src/index.js",
   "scripts": {
