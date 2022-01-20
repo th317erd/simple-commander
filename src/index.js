@@ -458,6 +458,7 @@ function buildCommands(yargs, _context, _commandStrings, _opts) {
   var currentCommand  = yargs;
   var commandHelper   = opts.commandHelper;
   var argumentHelper  = opts.argumentHelper;
+  var actionHelper    = opts.actionHelper;
 
   if (typeof context === 'function')
     context = {};
@@ -477,6 +478,13 @@ function buildCommands(yargs, _context, _commandStrings, _opts) {
 
     if (actionMethodName === '$0')
       actionMethodName = '_default';
+
+    var actionMethod;
+
+    if (typeof actionHelper === 'function')
+      actionMethod = actionHelper.call(context, actionMethodName, thisCommand, currentCommand);
+    else
+      actionMethod = (typeof _context === 'function') ? _context.bind(context, actionMethodName) : context[actionMethodName].bind(context);
 
     currentCommand = currentCommand.command(
       [ `${thisCommand.names[0]} ${buildPositionalArguments(commandParts)}` ].concat(commandAliases),
@@ -575,7 +583,7 @@ function buildCommands(yargs, _context, _commandStrings, _opts) {
 
         return yargs;
       },
-      (typeof _context === 'function') ? _context.bind(context, actionMethodName) : context[actionMethodName].bind(context),
+      actionMethod,
     );
 
     if (typeof commandHelper === 'function')
