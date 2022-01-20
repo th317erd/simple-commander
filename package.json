@@ -1,0 +1,36 @@
+{
+  "name": "simple-yargs",
+  "version": "0.1.0",
+  "description": "yargs made simple",
+  "main": "src/index.js",
+  "scripts": {
+    "test": "node node_modules/jasmine/bin/jasmine"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/th317erd/simple-commander.git"
+  },
+  "keywords": [
+    "yargs",
+    "command",
+    "option",
+    "parser",
+    "cli",
+    "argument",
+    "args",
+    "argv"
+  ],
+  "author": "Wyatt Greenway",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/th317erd/simple-commander/issues"
+  },
+  "homepage": "https://github.com/th317erd/simple-commander#readme",
+  "devDependencies": {
+    "jasmine": "^4.0.2",
+    "yargs": "^17.3.1"
+  },
+  "peerDependencies": {
+    "yargs": ">=17.3.1"
+  }
+}
