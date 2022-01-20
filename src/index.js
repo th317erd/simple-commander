@@ -429,7 +429,7 @@ function buildPositionalArguments(commandParts) {
   return parts.join(' ');
 }
 
-function buildCommands(yargs, context, _commandStrings, _opts) {
+function buildCommands(yargs, _context, _commandStrings, _opts) {
   const createDefaultFunc = (type, defaultValues) => {
     return function() {
       for (var i = 0, il = defaultValues.length; i < il; i++) {
@@ -452,11 +452,15 @@ function buildCommands(yargs, context, _commandStrings, _opts) {
     };
   };
 
+  var context         = _context || {};
   var opts            = _opts || {};
   var commandStrings  = _commandStrings;
   var currentCommand  = yargs;
   var commandHelper   = opts.commandHelper;
   var argumentHelper  = opts.argumentHelper;
+
+  if (typeof context === 'function')
+    context = {};
 
   if (!(commandStrings instanceof Array))
     commandStrings = [ commandStrings ];
@@ -571,7 +575,7 @@ function buildCommands(yargs, context, _commandStrings, _opts) {
 
         return yargs;
       },
-      context[actionMethodName].bind(context),
+      (typeof _context === 'function') ? _context.bind(context, actionMethodName) : context[actionMethodName].bind(context),
     );
 
     if (typeof commandHelper === 'function')

@@ -168,7 +168,7 @@ Build command(s) specified via the command strings parsed from `commands`.
 #### Arguments
 
 * **yargs** (*yargs instance*) - Instance of yargs to work off of to build the commands
-* **context** (*Object*) - A simple object used to fetch "action" handler methods from. The name of the command (the "real" name) is used as a key to find the action handler method for each command. Commands that have no name (`$0` commands) look for the key `_default` for their action. This can be a `this` instance of a class, where your class method names are the same as your command names.<br>*Note: Each action method found is automatically bound to `context`: `actionMethod.bind(context)`.*
+* **context** (*Object|Function*) - A simple object used to fetch "action" handler methods from. The name of the command (the "real" name) is used as a key to find the action handler method for each command. Commands that have no name (`$0` commands) look for the key `_default` for their action. This can be a `this` instance of a class, where your class method names are the same as your command names. If `context` is a function, then it will be used as the action handler for all commands.<br>*Note: Each action method found is automatically bound to `context`: `actionMethod.bind(context)`. If `context` is a function, then the first argument bound will be the command name.*
 * **commands** (*Array[string]*)- An array of command strings to parse and turn into commands.
 * **optional [opts]** (*Object*) - Optional options to pass to the command builder.
   * `opts` schema:<br>
@@ -209,7 +209,7 @@ This is the schema for a command object after a command is parsed. **SimpleYargs
 * command object schema:
 
   * `description` *(string | null)*: The description specified for the argument or option, or `null` if none was specified.
-  * `hidden` *(boolean)*: `true` if the argument or option was specified as hidden (`?` was added to the name of the argument or option).
+  * `hidden` *(boolean)*: `true` if the command was specified as hidden (`?` was added to the name of the argument or option).
   * `kind` *(string)*: Will always be `"command"`.
   * `names` *(Array[string])*: An array of names as strings. The first, at index `[0]`, will always be the full "real" name of the command. Any remaining values in this array will be aliases for the name.
 
