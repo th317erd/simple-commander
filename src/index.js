@@ -325,7 +325,7 @@ function parseCommand(_command) {
       }
 
       if (defaultValues) {
-        var hasENV = (defaultValues.findIndex((value) => !!value.match(/$[A-Z0-9]+/)) >= 0);
+        var hasENV = (defaultValues.findIndex((value) => !!value.match(/\$[A-Z0-9_]+/)) >= 0);
         if (!hasENV && defaultValues.length === 1) {
           defaultValues = defaultValues[0];
           if (type && type !== 'array')
