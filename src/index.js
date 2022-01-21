@@ -296,7 +296,7 @@ function parseCommand(_command) {
       var kind            = (expandMaskedPart(name, emptyAttributesHelper).trim().match(/^-/)) ? 'option' : 'argument';
       var hidden          = (name.indexOf('?') >= 0);
       var variadic        = (kind !== 'option' && name.indexOf('...') >= 0);
-      var names           = name.split(',').map((part) => expandMaskedPart(part, extraAttributesHelper).replace(/[^\w_]+/g, '')).reverse();
+      var names           = name.split(',').map((part) => expandMaskedPart(part, extraAttributesHelper).replace(/^-+/, '').replace(/[^\w_-]+/g, '')).reverse();
       var type            = _type;
       var optional        = (m.charAt(0) === '[');
       var defaultValues   = _defaultValues;
@@ -452,13 +452,121 @@ function buildCommands(yargs, _context, _commandStrings, _opts) {
     };
   };
 
-  var context         = _context || {};
-  var opts            = _opts || {};
-  var commandStrings  = _commandStrings;
-  var currentCommand  = yargs;
-  var commandHelper   = opts.commandHelper;
-  var argumentHelper  = opts.argumentHelper;
-  var actionHelper    = opts.actionHelper;
+  const createBuilder = (commandParts) => {
+    return (thisYargs) => {
+      for (var j = 1, jl = commandParts.length; j < jl; j++) {
+        var part = commandParts[j];
+        var {
+          choices,
+          defaultValues,
+          description,
+          defaultDescription,
+          hidden,
+          kind,
+          names,
+          optional,
+          type,
+          variadic,
+        } = part;
+
+        if (!description)
+          description = false;
+
+        if (!defaultDescription)
+          defaultDescription = false;
+
+        var originalType  = type;
+        var yargsType     = type;
+
+        if (type === 'count') {
+          type = 'number';
+        } else if (type === 'bool') {
+          type = 'boolean';
+          yargsType = 'boolean';
+        } else if (type === 'int' || type === 'integer') {
+          yargsType = 'number';
+        } else if (type === 'bigint') {
+          yargsType = undefined;
+        }
+
+        var alias = names.slice(1);
+        if (!alias.length)
+          alias = undefined;
+
+        var coerce = undefined;
+        if (type)
+          coerce = (value) => coerceValue(value, type);
+
+        if (variadic && coerce) {
+          var originalCoerce = coerce;
+          coerce = (value) => value.map(originalCoerce);
+        }
+
+        if (typeof argumentHelper === 'function') {
+          var result = argumentHelper.call(context, thisYargs, Object.assign({}, part, { alias, coerce, type, originalType }));
+
+          if (result) {
+            thisYargs = result;
+            continue;
+          }
+        }
+
+        if (defaultValues && defaultValues instanceof Array)
+          defaultValues = createDefaultFunc(type, defaultValues);
+
+        if (defaultValues == null)
+          defaultValues = undefined;
+
+        if (kind === 'argument') {
+          if (!description) {
+            if (forceDescriptions === 'error')
+              throw new Error(`Error: argument '${names[0]}' is missing a description`);
+            else if (forceDescriptions === true)
+              description = `${names[0]} argument`;
+          }
+
+          thisYargs.positional(names[0], {
+            'default':    defaultValues,
+            description:  (hidden) ? false : description,
+            type:         yargsType,
+            alias,
+            choices,
+            coerce,
+            defaultDescription,
+          });
+        } else if (kind === 'option') {
+          if (!description) {
+            if (forceDescriptions === 'error')
+              throw new Error(`Error: option '${names[0]}' is missing a description`);
+            else if (forceDescriptions === true)
+              description = `${names[0]} option`;
+          }
+
+          thisYargs.option(names[0], {
+            'default':    defaultValues,
+            demandOption: !optional,
+            global:       true,
+            type:         yargsType,
+            alias,
+            choices,
+            coerce,
+            defaultDescription,
+            description,
+            hidden,
+          });
+        }
+      }
+    };
+  };
+
+  var context           = _context || {};
+  var opts              = _opts || {};
+  var commandStrings    = _commandStrings;
+  var currentCommand    = yargs;
+  var commandHelper     = opts.commandHelper;
+  var argumentHelper    = opts.argumentHelper;
+  var actionHelper      = opts.actionHelper;
+  var forceDescriptions = (opts.forceDescriptions == null) ? 'error' : opts.forceDescriptions;
 
   if (typeof context === 'function')
     context = {};
@@ -482,118 +590,32 @@ function buildCommands(yargs, _context, _commandStrings, _opts) {
     var actionMethod;
 
     if (typeof actionHelper === 'function')
-      actionMethod = actionHelper.call(context, actionMethodName, thisCommand, currentCommand);
+      actionMethod = actionHelper.call(context, actionMethodName, thisCommand, yargs);
     else
       actionMethod = (typeof _context === 'function') ? _context.bind(context, actionMethodName) : context[actionMethodName].bind(context);
 
-    currentCommand = currentCommand.command(
+    if (!thisCommand.description) {
+      if (forceDescriptions === 'error')
+        throw new Error(`Error: command '${thisCommand.names[0]}' is missing a description`);
+      else if (forceDescriptions === true)
+        thisCommand.description = `${thisCommand.names[0]} command`;
+    }
+
+    currentCommand = yargs.command(
       [ `${thisCommand.names[0]} ${buildPositionalArguments(commandParts)}` ].concat(commandAliases),
       (thisCommand.hidden) ? false : (thisCommand.description || false),
-      (_yargs) => {
-        var yargs = _yargs;
-
-        for (var j = 1, jl = commandParts.length; j < jl; j++) {
-          var part = commandParts[j];
-          var {
-            choices,
-            defaultValues,
-            description,
-            defaultDescription,
-            hidden,
-            kind,
-            names,
-            optional,
-            type,
-            variadic,
-          } = part;
-
-          if (!description)
-            description = false;
-
-          if (!defaultDescription)
-            defaultDescription = false;
-
-          var originalType  = type;
-          var yargsType     = type;
-
-          if (type === 'count') {
-            type = 'number';
-          } else if (type === 'bool') {
-            type = 'boolean';
-            yargsType = 'boolean';
-          } else if (type === 'int' || type === 'integer') {
-            yargsType = 'number';
-          } else if (type === 'bigint') {
-            yargsType = undefined;
-          }
-
-          var alias = names.slice(1);
-          if (!alias.length)
-            alias = undefined;
-
-          var coerce = undefined;
-          if (type)
-            coerce = (value) => coerceValue(value, type);
-
-          if (variadic && coerce) {
-            var originalCoerce = coerce;
-            coerce = (value) => value.map(originalCoerce);
-          }
-
-          if (typeof argumentHelper === 'function') {
-            var result = argumentHelper.call(context, yargs, Object.assign({}, part, { alias, coerce, type, originalType }));
-
-            if (result) {
-              yargs = result;
-              continue;
-            }
-          }
-
-          if (defaultValues && defaultValues instanceof Array)
-            defaultValues = createDefaultFunc(type, defaultValues);
-
-          if (defaultValues == null)
-            defaultValues = undefined;
-
-          if (kind === 'argument') {
-            yargs = yargs.positional(names[0], {
-              'default':    defaultValues,
-              description:  (hidden) ? false : description,
-              type:         yargsType,
-              alias,
-              choices,
-              coerce,
-              defaultDescription,
-            });
-          } else if (kind === 'option') {
-            yargs = yargs.option(names[0], {
-              'default':    defaultValues,
-              demandOption: !optional,
-              global:       true,
-              type:         yargsType,
-              alias,
-              choices,
-              coerce,
-              defaultDescription,
-              description,
-              hidden,
-            });
-          }
-        }
-
-        return yargs;
-      },
+      createBuilder(commandParts),
       actionMethod,
     );
 
     if (typeof commandHelper === 'function')
-      currentCommand = commandHelper.call(context, currentCommand, thisCommand, commandParts.slice(1));
+      commandHelper.call(context, thisYargs, thisCommand, commandParts.slice(1));
   }
 
-  return currentCommand;
+  return yargs;
 }
 
-// parseCommand('create-pizza <argument');
+// console.log('COMMAND PARSED: ', parseCommand(`makemigrations makemigrations [-p,-preview:boolean(Preview what the generated migration would look like without migrating anything)]       [-n,-name:string(Specify a name for your migration)]       [-c,-comment:string(Specify a comment for your migration)]       [-e,-env:string(Environment to use)=$NODE_ENV|development(Default "development")] [--mythixConfig:string(Path to .mythix-config.js)=$MYTHIX_CONFIG_PATH]`));
 
 module.exports = {
   coerceValue,
