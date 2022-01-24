@@ -444,7 +444,7 @@ function buildCommands(yargs, _context, _commandStrings, _opts) {
     if (!command)
       continue;
 
-    var commandParts      = parseCommand(command);
+    var commandParts      = _parseCommand(command);
     var thisCommand       = commandParts[0];
     var commandAliases    = thisCommand.names.slice(1);
     var actionMethodName  = thisCommand.names[0];
@@ -480,11 +480,11 @@ function buildCommands(yargs, _context, _commandStrings, _opts) {
   return yargs;
 }
 
-console.log('RESULT: ', parseCommand(`mm,makemigrations(Just a test (command\\)) <-p?,-preview...:boolean>`));
+//console.log('RESULT: ', parseCommand(`mm,makemigrations(Just a test (command\\)) <-p?,-preview...:boolean>`));
 
 module.exports = {
   coerceValue,
-  parseCommand,
+  parseCommand: _parseCommand,
   buildPositionalArguments,
   buildCommands,
 };
